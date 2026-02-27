@@ -1,5 +1,101 @@
 # @mastra/core
 
+## 1.9.0-alpha.0
+
+### Minor Changes
+
+- Workspace sandbox tool results (`execute_command`, `kill_process`, `get_process_output`) sent to the model now strip ANSI color codes via `toModelOutput`, while streamed output to the user keeps colors. This reduces token usage and improves model readability. ([#13440](https://github.com/mastra-ai/mastra/pull/13440))
+
+  Workspace `execute_command` tool now extracts trailing `| tail -N` pipes from commands so output streams live to the user, while the final result sent to the model is still truncated to the last N lines.
+
+  Workspace tools that return potentially large output now enforce a token-based output limit (~3k tokens by default) using tiktoken for accurate counting. The limit is configurable per-tool via `maxOutputTokens` in `WorkspaceToolConfig`. Each tool uses a truncation strategy suited to its output:
+  - `read_file`, `grep`, `list_files` — truncate from the end (keep imports, first matches, top-level tree)
+  - `execute_command`, `get_process_output`, `kill_process` — head+tail sandwich (keep early output + final status)
+
+  ```ts
+  const workspace = new Workspace({
+    tools: {
+      mastra_workspace_execute_command: {
+        maxOutputTokens: 5000, // override default 3k
+      },
+    },
+  });
+  ```
+
+- Added OpenAI WebSocket transport for streaming responses with auto-close and manual transport access ([#13531](https://github.com/mastra-ai/mastra/pull/13531))
+
+- Added a unified observability type system with interfaces for structured logging, metrics (counters, gauges, histograms), scores, and feedback alongside the existing tracing infrastructure. ([#13058](https://github.com/mastra-ai/mastra/pull/13058))
+
+  **Why?** Previously, only tracing flowed through execution contexts. Logging was ad-hoc and metrics did not exist. This change establishes the type system and context plumbing so that when concrete implementations land, logging and metrics will flow through execute callbacks automatically — no migration needed.
+
+  **What changed:**
+  - New `ObservabilityContext` interface combining tracing, logging, and metrics contexts
+  - New type definitions for `LoggerContext`, `MetricsContext`, `ScoreInput`, `FeedbackInput`, and `ObservabilityEventBus`
+  - `createObservabilityContext()` factory and `resolveObservabilityContext()` resolver with no-op defaults for graceful degradation
+  - Future logging and metrics signals will propagate automatically through execution contexts — no migration needed
+  - Added `loggerVNext` and `metrics` getters to the `Mastra` class
+
+- **Added** local symlink mounts in `LocalSandbox` so sandboxed commands can access locally-mounted filesystem paths. ([#13474](https://github.com/mastra-ai/mastra/pull/13474))
+  **Improved** mounted paths so commands resolve consistently in local sandboxes.
+  **Improved** workspace instructions so developers can quickly find mounted data paths.
+
+  **Why:** Local sandboxes can now run commands against locally-mounted data without manual path workarounds.
+
+  **Usage example:**
+
+  ```typescript
+  const workspace = new Workspace({
+    mounts: {
+      '/data': new LocalFilesystem({ basePath: '/path/to/data' }),
+    },
+    sandbox: new LocalSandbox({ workingDirectory: './workspace' }),
+  });
+
+  await workspace.init();
+  // Sandboxed commands can access the mount path via symlink
+  await workspace.sandbox.executeCommand('ls data');
+  ```
+
+- Abort signal and background process callbacks ([#13597](https://github.com/mastra-ai/mastra/pull/13597))
+  - Sandbox commands and spawned processes can now be cancelled via `abortSignal` in command options
+  - Background processes spawned via `execute_command` now support `onStdout`, `onStderr`, and `onExit` callbacks for streaming output and exit notifications
+  - New `backgroundProcesses` config in workspace tool options for wiring up background process callbacks
+
+### Patch Changes
+
+- Added `supportsConcurrentUpdates()` method to `WorkflowsStorage` base class and abstract `updateWorkflowResults`/`updateWorkflowState` methods for atomic workflow state updates. The evented workflow engine now checks `supportsConcurrentUpdates()` and throws a clear error if the storage backend does not support concurrent updates. ([#12575](https://github.com/mastra-ai/mastra/pull/12575))
+
+- Update provider registry and model documentation with latest models and providers ([`edee4b3`](https://github.com/mastra-ai/mastra/commit/edee4b37dff0af515fc7cc0e8d71ee39e6a762f0))
+
+- Fixed path matching for auto-indexing and skills discovery. ([#13511](https://github.com/mastra-ai/mastra/pull/13511))
+  Single file paths, directory globs, and `SKILL.md` file globs now resolve consistently.
+  Trailing slashes are now handled correctly.
+
+- Fixed parallel workflow tool calls so each call runs independently. ([#13478](https://github.com/mastra-ai/mastra/pull/13478))
+
+  When an agent starts multiple tool calls to the same workflow at the same time, each call now runs with its own workflow run context. This prevents duplicated results across parallel calls and ensures each call returns output for its own input. Also ensures workflow tool suspension and manual resumption correctly preserves the run context.
+
+- Added a warning when a `LocalFilesystem` mount uses `contained: false`, alerting users to path resolution issues in mount-based workspaces. Use `contained: true` (default) or `allowedPaths` to allow specific host paths. ([#13474](https://github.com/mastra-ai/mastra/pull/13474))
+
+- Fixed harness handling for observational memory failures so streams stop immediately when OM reports a failed run or buffering cycle. ([#13563](https://github.com/mastra-ai/mastra/pull/13563))
+
+  The harness now emits the existing OM failure event (`om_observation_failed`, `om_reflection_failed`, or `om_buffering_failed`), emits a top-level error with OM context, and aborts the active stream. This prevents normal assistant output from continuing after an OM model failure.
+
+- Fixed tool approval resume failing when Agent is used without an explicit Mastra instance. The Harness now creates an internal Mastra instance with storage and registers it on mode agents, ensuring workflow snapshots persist and load correctly. Also fixed requestContext serialization using toJSON() to prevent circular reference errors during snapshot persistence. ([#13519](https://github.com/mastra-ai/mastra/pull/13519))
+
+- Remove internal `processes` field from sandbox provider options ([#13597](https://github.com/mastra-ai/mastra/pull/13597))
+
+  The `processes` field is no longer exposed in constructor options for E2B, Daytona, and Blaxel sandbox providers. This field is managed internally and was not intended to be user-configurable.
+
+- Model pack selection is now more consistent and reliable in mastracode. ([#13512](https://github.com/mastra-ai/mastra/pull/13512))
+  - `/models` is now the single command for choosing and managing model packs.
+  - Model picker ranking now learns from your recent selections and keeps those preferences across sessions.
+  - Pack choice now restores correctly per thread when switching between threads.
+  - Custom packs now support full create, rename, targeted edit, and delete workflows.
+  - The built-in **Varied** option has been retired; users who had it selected are automatically migrated to a saved custom pack named `varied`.
+
+- Added `MastraMessagePart` to the public type exports of `@mastra/core/agent`, allowing it to be imported directly in downstream packages. ([#13297](https://github.com/mastra-ai/mastra/pull/13297))
+
 ## 1.8.0
 
 ### Minor Changes

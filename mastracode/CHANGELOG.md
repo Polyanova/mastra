@@ -1,5 +1,55 @@
 # mastracode
 
+## 0.5.0-alpha.0
+
+### Minor Changes
+
+- Added plan persistence: approved plans are now saved as markdown files to disk. Plans are stored at the platform-specific app data directory (e.g. ~/Library/Application Support/mastracode/plans/ on macOS). Set the MASTRA_PLANS_DIR environment variable to override the storage location. ([#13557](https://github.com/mastra-ai/mastra/pull/13557))
+
+### Patch Changes
+
+- Fixed plan approval flow so selecting Request changes keeps the submitted plan visible while entering feedback in the TUI. ([#13598](https://github.com/mastra-ai/mastra/pull/13598))
+
+- Removed unnecessary Mastra instance wrapper in createMastraCode. The Agent is now created standalone and the Harness handles Mastra registration internally during init(). ([#13519](https://github.com/mastra-ai/mastra/pull/13519))
+
+- Added ANTHROPIC_API_KEY support as a fallback for Anthropic model resolution. Previously, anthropic/\* models always required Claude Max OAuth. Now, when not logged in via OAuth, mastracode falls back to the ANTHROPIC_API_KEY environment variable or a stored API key credential. ([#13600](https://github.com/mastra-ai/mastra/pull/13600))
+
+- Fixed OpenAI Codex OAuth model routing for observational memory. ([#13563](https://github.com/mastra-ai/mastra/pull/13563))
+
+  When Codex OAuth is active, observer and reflector model IDs now remap GPT-5 OpenAI models to Codex-compatible variants before provider resolution. This prevents observational memory runs from failing when a non-codex GPT-5 model ID is selected.
+
+  Also enforced a minimum reasoning level of `low` for GPT-5 Codex requests so `off` is not sent to Codex for those models.
+
+- The setup flow now detects API keys for all providers listed in the model registry, not just a fixed set. ([#13566](https://github.com/mastra-ai/mastra/pull/13566))
+  Users with API keys for providers like Groq, Mistral, or any supported provider will no longer see a "No model providers configured" error.
+  Missing provider detection is now a warning, allowing users to continue setup.
+
+- Fixed two bugs in Mastra Code tool handling: ([#13564](https://github.com/mastra-ai/mastra/pull/13564))
+
+  **extraTools not merged** — The `extraTools` parameter in `createMastraCode` was accepted but never passed through to the dynamic tool builder. Extra tools are now correctly merged into the tool set (without overwriting built-in tools).
+
+  **Denied tools still advertised** — Tools with a per-tool `deny` policy in `permissionRules` were still included in the tool set and system prompt guidance, causing the model to attempt using them only to be blocked at execution time. Denied tools are now filtered from both the tool set and the tool guidance, so the model never sees them.
+
+- Added "Quiet mode" setting. When enabled via `/settings` → "Quiet mode" → On, components like subagent output auto-collapse to compact summary lines on completion. Default is off (full output stays visible). The setting persists across restarts. ([#13556](https://github.com/mastra-ai/mastra/pull/13556))
+
+- Fixed mastracode edit tools to resolve relative paths against the configured project root. ([#13526](https://github.com/mastra-ai/mastra/pull/13526))
+
+- Model pack selection is now more consistent and reliable in mastracode. ([#13512](https://github.com/mastra-ai/mastra/pull/13512))
+  - `/models` is now the single command for choosing and managing model packs.
+  - Model picker ranking now learns from your recent selections and keeps those preferences across sessions.
+  - Pack choice now restores correctly per thread when switching between threads.
+  - Custom packs now support full create, rename, targeted edit, and delete workflows.
+  - The built-in **Varied** option has been retired; users who had it selected are automatically migrated to a saved custom pack named `varied`.
+
+- Fixed a crash where ERR_STREAM_DESTROYED errors would fatally exit the process. These errors occur routinely during cancelled LLM streams, LSP shutdown, or killed subprocesses and are now silently ignored instead of crashing mastracode. ([#13560](https://github.com/mastra-ai/mastra/pull/13560))
+
+- Updated dependencies [[`88de7e8`](https://github.com/mastra-ai/mastra/commit/88de7e8dfe4b7e1951a9e441bb33136e705ce24e), [`88de7e8`](https://github.com/mastra-ai/mastra/commit/88de7e8dfe4b7e1951a9e441bb33136e705ce24e), [`88de7e8`](https://github.com/mastra-ai/mastra/commit/88de7e8dfe4b7e1951a9e441bb33136e705ce24e), [`edee4b3`](https://github.com/mastra-ai/mastra/commit/edee4b37dff0af515fc7cc0e8d71ee39e6a762f0), [`9311c17`](https://github.com/mastra-ai/mastra/commit/9311c17d7a0640d9c4da2e71b814dc67c57c6369), [`d5f0d8d`](https://github.com/mastra-ai/mastra/commit/d5f0d8d6a03e515ddaa9b5da19b7e44b8357b07b), [`09c3b18`](https://github.com/mastra-ai/mastra/commit/09c3b1802ff14e243a8a8baea327440bc8cc2e32), [`24f7204`](https://github.com/mastra-ai/mastra/commit/24f72046eb35b47c75d36193af4fb817b588720d), [`524c0f3`](https://github.com/mastra-ai/mastra/commit/524c0f3c434c3d9d18f66338dcef383d6161b59c), [`3c6ef79`](https://github.com/mastra-ai/mastra/commit/3c6ef798481e00d6d22563be2de98818fd4dd5e0), [`9311c17`](https://github.com/mastra-ai/mastra/commit/9311c17d7a0640d9c4da2e71b814dc67c57c6369), [`d25b9ea`](https://github.com/mastra-ai/mastra/commit/d25b9eabd400167255a97b690ffbc4ee4097ded5), [`b03c0e0`](https://github.com/mastra-ai/mastra/commit/b03c0e0389a799523929a458b0509c9e4244d562), [`9257d01`](https://github.com/mastra-ai/mastra/commit/9257d01d1366d81f84c582fe02b5e200cf9621f4), [`9311c17`](https://github.com/mastra-ai/mastra/commit/9311c17d7a0640d9c4da2e71b814dc67c57c6369), [`191e5bd`](https://github.com/mastra-ai/mastra/commit/191e5bd29b82f5bda35243945790da7bc7b695c2), [`257d14f`](https://github.com/mastra-ai/mastra/commit/257d14faca5931f2e4186fc165b6f0b1f915deee), [`31c78b3`](https://github.com/mastra-ai/mastra/commit/31c78b3eb28f58a8017f1dcc795c33214d87feac), [`3c6ef79`](https://github.com/mastra-ai/mastra/commit/3c6ef798481e00d6d22563be2de98818fd4dd5e0), [`9257d01`](https://github.com/mastra-ai/mastra/commit/9257d01d1366d81f84c582fe02b5e200cf9621f4)]:
+  - @mastra/core@1.9.0-alpha.0
+  - @mastra/libsql@1.6.3-alpha.0
+  - @mastra/pg@1.7.1-alpha.0
+  - @mastra/memory@1.5.3-alpha.0
+  - @mastra/mcp@1.0.3-alpha.0
+
 ## 0.4.0
 
 ### Minor Changes

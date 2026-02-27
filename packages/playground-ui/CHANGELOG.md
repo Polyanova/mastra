@@ -1,5 +1,30 @@
 # @mastra/playground-ui
 
+## 15.1.0-alpha.0
+
+### Minor Changes
+
+- Added dataset experiments comparison view with side-by-side experiment info, per-scorer summary table, per-item score deltas, and a detail panel for inspecting individual comparison items. ([#13590](https://github.com/mastra-ai/mastra/pull/13590))
+
+  **Chip component enhancements**
+
+  Enhanced Chip component with new `intensity` prop for controlling brightness and additional color options.
+
+### Patch Changes
+
+- Improved dataset selection behavior in Playground UI. ([#13585](https://github.com/mastra-ai/mastra/pull/13585))
+  - Improved selection UX in dataset lists with clearer checkbox interaction.
+  - Updated the experiments toolbar selection counter styling for consistency.
+  - Updated compare selection behavior: when a third item is selected, the earliest selection is kept and the other selection is replaced.
+
+- Fixed sub-agent collapsible sections in Studio UI to automatically collapse after the sub-agent finishes processing. Previously the section would stay expanded for the entire agent lifecycle, creating visual noise. Now the sub-agent section expands while active and collapses when done. Users can still manually re-open it by clicking. ([#13558](https://github.com/mastra-ai/mastra/pull/13558))
+
+- Updated dependencies [[`88de7e8`](https://github.com/mastra-ai/mastra/commit/88de7e8dfe4b7e1951a9e441bb33136e705ce24e), [`edee4b3`](https://github.com/mastra-ai/mastra/commit/edee4b37dff0af515fc7cc0e8d71ee39e6a762f0), [`d5f0d8d`](https://github.com/mastra-ai/mastra/commit/d5f0d8d6a03e515ddaa9b5da19b7e44b8357b07b), [`09c3b18`](https://github.com/mastra-ai/mastra/commit/09c3b1802ff14e243a8a8baea327440bc8cc2e32), [`524c0f3`](https://github.com/mastra-ai/mastra/commit/524c0f3c434c3d9d18f66338dcef383d6161b59c), [`3c6ef79`](https://github.com/mastra-ai/mastra/commit/3c6ef798481e00d6d22563be2de98818fd4dd5e0), [`9311c17`](https://github.com/mastra-ai/mastra/commit/9311c17d7a0640d9c4da2e71b814dc67c57c6369), [`d25b9ea`](https://github.com/mastra-ai/mastra/commit/d25b9eabd400167255a97b690ffbc4ee4097ded5), [`b03c0e0`](https://github.com/mastra-ai/mastra/commit/b03c0e0389a799523929a458b0509c9e4244d562), [`9257d01`](https://github.com/mastra-ai/mastra/commit/9257d01d1366d81f84c582fe02b5e200cf9621f4), [`191e5bd`](https://github.com/mastra-ai/mastra/commit/191e5bd29b82f5bda35243945790da7bc7b695c2), [`257d14f`](https://github.com/mastra-ai/mastra/commit/257d14faca5931f2e4186fc165b6f0b1f915deee), [`31c78b3`](https://github.com/mastra-ai/mastra/commit/31c78b3eb28f58a8017f1dcc795c33214d87feac), [`3c6ef79`](https://github.com/mastra-ai/mastra/commit/3c6ef798481e00d6d22563be2de98818fd4dd5e0), [`257d14f`](https://github.com/mastra-ai/mastra/commit/257d14faca5931f2e4186fc165b6f0b1f915deee), [`9257d01`](https://github.com/mastra-ai/mastra/commit/9257d01d1366d81f84c582fe02b5e200cf9621f4)]:
+  - @mastra/core@1.9.0-alpha.0
+  - @mastra/ai-sdk@1.1.1-alpha.0
+  - @mastra/client-js@1.7.2-alpha.0
+  - @mastra/react@0.2.8-alpha.0
+
 ## 15.0.0
 
 ### Minor Changes
